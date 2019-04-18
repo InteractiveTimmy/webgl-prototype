@@ -1,0 +1,23 @@
+{
+  "name": "webgl-prototype",
+  "version": "1.0.0",
+  "description": "Prototyping WebGL Functionality",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "http-server ./prototype"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/InteractiveTimmy/webgl-prototype.git"
+  },
+  "author": "InteractiveTimmy",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/InteractiveTimmy/webgl-prototype/issues"
+  },
+  "homepage": "https://github.com/InteractiveTimmy/webgl-prototype#readme",
+  "dependencies": {
+    "http-server": "^0.11.1"
+  }
+}
