@@ -3,15 +3,18 @@ const VTST = [
   'precision mediump float;',
   '',
   'attribute vec3 vertPosition;', // position 2d
-  'attribute vec3 vertColor;', // color
-  'varying vec3 fragColor;',
+  // NOTE|OLD: 'attribute vec3 vertColor;', // color
+  'attribute vec2 vertTexCoord;',
+  // NOTE|OLD: 'varying vec3 fragColor;',
+  'varying vec2 fragTexCoord;',
   'uniform mat4 mWorld;',
   'uniform mat4 mView;',
   'uniform mat4 mProj;',
   '',
   'void main()',
   '{',
-  '  fragColor = vertColor;',
+  // NOTE|OLD: '  fragColor = vertColor;', // for color
+  '  fragTexCoord = vertTexCoord;',
   '  gl_Position = mProj * mView * mWorld * vec4(vertPosition, 1.0);',
   '}',
 ].join('\n');
@@ -19,11 +22,14 @@ const VTST = [
 // fragment shader text
 const FGST = [
   'precision mediump float;',
-  'varying vec3 fragColor;',
+  // NOTE|OLD: 'varying vec3 fragColor;', // for color
+  'varying vec2 fragTexCoord;',
+  'uniform sampler2D sampler;', // samples image input
   '',
   'void main()',
   '{',
-  '  gl_FragColor = vec4(fragColor, 1.0);',
+  // NOTE|OLD: '  gl_FragColor = vec4(fragColor, 1.0);', // for color
+  ' gl_FragColor = texture2D(sampler, fragTexCoord);',
   '}',
 ].join('\n');
 
@@ -108,6 +114,43 @@ function init() {
   }
 
   // creat buffers
+  const boxVerticies = [ // expects x, y, z, u, v
+    -1.0, 1.0, -1.0,   0, 0,
+		-1.0, 1.0, 1.0,    0, 1,
+		1.0, 1.0, 1.0,     1, 1,
+		1.0, 1.0, -1.0,    1, 0,
+
+		// Left
+		-1.0, 1.0, 1.0,    0, 0,
+		-1.0, -1.0, 1.0,   1, 0,
+		-1.0, -1.0, -1.0,  1, 1,
+		-1.0, 1.0, -1.0,   0, 1,
+
+		// Right
+		1.0, 1.0, 1.0,    1, 1,
+		1.0, -1.0, 1.0,   0, 1,
+		1.0, -1.0, -1.0,  0, 0,
+		1.0, 1.0, -1.0,   1, 0,
+
+		// Front
+		1.0, 1.0, 1.0,    1, 1,
+		1.0, -1.0, 1.0,    1, 0,
+		-1.0, -1.0, 1.0,    0, 0,
+		-1.0, 1.0, 1.0,    0, 1,
+
+		// Back
+		1.0, 1.0, -1.0,    0, 0,
+		1.0, -1.0, -1.0,    0, 1,
+		-1.0, -1.0, -1.0,    1, 1,
+		-1.0, 1.0, -1.0,    1, 0,
+
+		// Bottom
+		-1.0, -1.0, -1.0,   1, 1,
+		-1.0, -1.0, 1.0,    1, 0,
+		1.0, -1.0, 1.0,     0, 0,
+		1.0, -1.0, -1.0,    0, 1,
+  ];
+  /* NOTE|OLD:
   const boxVerticies = [ // expects x, y, r, g, b
     -1.0, 1.0, -1.0,   0.5, 0.5, 0.5,
 		-1.0, 1.0, 1.0,    0.5, 0.5, 0.5,
@@ -144,6 +187,7 @@ function init() {
 		1.0, -1.0, 1.0,     0.5, 0.5, 1.0,
 		1.0, -1.0, -1.0,    0.5, 0.5, 1.0,
   ];
+  */
 
   const boxIndices = [
 		// Top
@@ -191,7 +235,8 @@ function init() {
 
   // gets attribute from gl program (program => vert, namespace)
   const positionAttribLocation = gl.getAttribLocation(program, 'vertPosition'); // position
-  const colorAttribLocation = gl.getAttribLocation(program, 'vertColor'); // color
+  // NOTE|OLD: const colorAttribLocation = gl.getAttribLocation(program, 'vertColor'); // color
+  const texCoordAttribLocation = gl.getAttribLocation(program, 'vertTexCoord');
 
   // run position
   gl.vertexAttribPointer(
@@ -199,23 +244,51 @@ function init() {
     3, // number of elements per attribute
     gl.FLOAT, // type of the elements
     gl.FALSE, // data normalized
-    6 * Float32Array.BYTES_PER_ELEMENT, // size of an individual vertex
+    5 * Float32Array.BYTES_PER_ELEMENT, // size of an individual vertex
     0, // offset from the beginning of a single vertex to this attribute
   );
 
-  // run color
+  // run color | texture
   gl.vertexAttribPointer(
-    colorAttribLocation, // attribute location
-    3, // number of elements per attribute
+    texCoordAttribLocation,
+    // NOTE|OLD: colorAttribLocation, // attribute location
+    2, // number of elements per attribute
     gl.FLOAT, // type of the elements
     gl.FALSE, // data normalized
-    6 * Float32Array.BYTES_PER_ELEMENT, // size of an individual vertex
+    5 * Float32Array.BYTES_PER_ELEMENT, // size of an individual vertex
     3 * Float32Array.BYTES_PER_ELEMENT, // offset from the beginning of a single vertex to this attribute
   );
 
   // enable
   gl.enableVertexAttribArray(positionAttribLocation);
-  gl.enableVertexAttribArray(colorAttribLocation);
+  gl.enableVertexAttribArray(texCoordAttribLocation);
+
+  // create texture
+  const boxTexture = gl.createTexture();
+
+  // bind texture(type, texture);
+  gl.bindTexture(gl.TEXTURE_2D, boxTexture);
+
+  // filter image(const type, Coord, format)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+  // set samping(const type, filter, filter type)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+  // set texture
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    document.getElementById('crate-texture'),
+  );
+
+  // unbind after use
+  gl.bindTexture(gl.TEXTURE_2D, null);
 
   // get uniforms [ constants ]
   const matWorldUniformLocation = gl.getUniformLocation(program, 'mWorld');
@@ -274,6 +347,10 @@ function init() {
     // clear screen
     gl.clearColor(0.2, 0.2, 0.2, 1.0);
     gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
+
+    // bind texture values
+    gl.bindTexture(gl.TEXTURE_2D, boxTexture);
+    gl.activeTexture(gl.TEXTURE0);
 
     // NOTE|OLD: draw the bound buffer (type you are drawing, skip, count)
     // NOTE|OLD: gl.drawArrays(gl.TRIANGLES, 0, 3);
