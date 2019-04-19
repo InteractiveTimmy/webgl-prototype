@@ -33,8 +33,41 @@ const FGST = [
   '}',
 ].join('\n');
 
+function loadResource(url) {
+  return new Promise((resolve, reject) => {
+    fetch(url)
+      .then(r => r.text())
+      .then((r) => {
+        resolve(r);
+      })
+      .catch((e) => {
+        reject(e);
+      });
+  });
+}
+
 function init() {
-  console.log('initing');
+  return new Promise((resolve, reject) => {
+    console.log('initing');
+    
+    let fst;
+    let vst;
+
+    loadResource('shaders/fs.glsl')
+      .then((r) => {
+        fst = r;
+        return loadResource('shaders/vs.glsl');
+      })
+      .then((r) => {
+        vst = r;
+
+        this.start(fst, vst);
+      })
+  });
+}
+
+function start(fst, vst) {
+  console.log('starting');
 
   const canvas = document.getElementById('app');
   const gl = canvas.getContext('webgl');
@@ -61,7 +94,7 @@ function init() {
   // TEMP|NOTE|OLD: gl.enable(gl.CULL_FACE);
 
   // tell it which direction is front (gl.CW || gl.CCW)
-  gl.frontFace(gl.CCW)
+  // TEMP|OLD gl.frontFace(gl.CCW)
 
   // removes face to save render time (gl.FRONT || gl.BACK)
   // TEMP|NOTE|OLD: gl.cullFace(gl.BACK); // remove back face
@@ -71,8 +104,8 @@ function init() {
   const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
 
   // set shaders to use, (namespace, sourcecode)
-  gl.shaderSource(vertexShader, VTST);
-  gl.shaderSource(fragmentShader, FGST);
+  gl.shaderSource(vertexShader, vst);
+  gl.shaderSource(fragmentShader, fst);
 
   // compile shaders
   gl.compileShader(vertexShader);
