@@ -1,38 +1,3 @@
-// vertex shader text
-const VTST = [
-  'precision mediump float;',
-  '',
-  'attribute vec3 vertPosition;', // position 2d
-  // NOTE|OLD: 'attribute vec3 vertColor;', // color
-  'attribute vec2 vertTexCoord;',
-  // NOTE|OLD: 'varying vec3 fragColor;',
-  'varying vec2 fragTexCoord;',
-  'uniform mat4 mWorld;',
-  'uniform mat4 mView;',
-  'uniform mat4 mProj;',
-  '',
-  'void main()',
-  '{',
-  // NOTE|OLD: '  fragColor = vertColor;', // for color
-  '  fragTexCoord = vertTexCoord;',
-  '  gl_Position = mProj * mView * mWorld * vec4(vertPosition, 1.0);',
-  '}',
-].join('\n');
-
-// fragment shader text
-const FGST = [
-  'precision mediump float;',
-  // NOTE|OLD: 'varying vec3 fragColor;', // for color
-  'varying vec2 fragTexCoord;',
-  'uniform sampler2D sampler;', // samples image input
-  '',
-  'void main()',
-  '{',
-  // NOTE|OLD: '  gl_FragColor = vec4(fragColor, 1.0);', // for color
-  ' gl_FragColor = texture2D(sampler, fragTexCoord);',
-  '}',
-].join('\n');
-
 function loadResource(url) {
   return new Promise((resolve, reject) => {
     fetch(url)
@@ -49,7 +14,7 @@ function loadResource(url) {
 function init() {
   return new Promise((resolve, reject) => {
     console.log('initing');
-    
+
     let fst;
     let vst;
 
