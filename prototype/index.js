@@ -58,13 +58,13 @@ function init() {
   gl.enable(gl.DEPTH_TEST);
 
   // enable culler, which removes target faces
-  gl.enable(gl.CULL_FACE);
+  // TEMP|NOTE|OLD: gl.enable(gl.CULL_FACE);
 
   // tell it which direction is front (gl.CW || gl.CCW)
   gl.frontFace(gl.CCW)
 
   // removes face to save render time (gl.FRONT || gl.BACK)
-  gl.cullFace(gl.BACK);
+  // TEMP|NOTE|OLD: gl.cullFace(gl.BACK); // remove back face
 
   // create shader namespaces
   const vertexShader = gl.createShader(gl.VERTEX_SHADER)
@@ -268,6 +268,10 @@ function init() {
 
   // bind texture(type, texture);
   gl.bindTexture(gl.TEXTURE_2D, boxTexture);
+
+  // allow alpha
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
   // filter image(const type, Coord, format)
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
