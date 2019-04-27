@@ -18,7 +18,9 @@ function init() {
     let fst;
     let vst;
 
-    const data = {};
+    const data = {
+      textures: [],
+    };
 
     loadResource('shaders/fs.glsl', 'text')
       .then((r) => {
@@ -27,7 +29,7 @@ function init() {
       })
       .then((r) => {
         vst = r;
-        return loadResource('models/Avocado.gltf', 'json');
+        return loadResource('models/Lantern.gltf', 'json');
       })
       .then((r) => {
         data.gltf = r;
@@ -45,7 +47,19 @@ function init() {
         );
       })
       .then((r) => {
-        data.textures = r;
+        return Promise.all(r.map(
+          i => {
+            return new Promise((resolve) => {
+              const image = new Image();
+              image.onload = () => { resolve(image); }
+              image.src = URL.createObjectURL(i);
+            })
+          }
+        ));
+      })
+      .then((r) => {
+        data.images = r;
+
         const d = dataCheck(data);
         this.start(fst, vst, d);
 
@@ -58,7 +72,7 @@ function dataCheck(data) {
   console.log(data);
 
   // destructure
-  const { gltf, bin, textures } = data;
+  const { gltf, bin, images } = data;
 
   const b = {
     "5126": 4,
@@ -86,12 +100,14 @@ function dataCheck(data) {
       / b[gltf.accessors[meshPrims.attributes.POSITION].componentType]
   );
 
+  /* NOTE some models don't need this
   const vTangents = new Float32Array(
     bin,
     gltf.bufferViews[gltf.accessors[meshPrims.attributes.TANGENT].bufferView].byteOffset,
     gltf.bufferViews[gltf.accessors[meshPrims.attributes.TANGENT].bufferView].byteLength
       / b[gltf.accessors[meshPrims.attributes.TANGENT].componentType]
   );
+  */
 
   const vTextCoords = new Float32Array(
     bin,
@@ -121,7 +137,7 @@ function dataCheck(data) {
   const mIndicies = new Uint16Array(bin, 60, 72 / 2);
   */
 
-  return { vNormals, vPositions, vTangents, vTextCoords, mIndicies };
+  return { vNormals, vPositions, vTextCoords, mIndicies, images };
 }
 
 function start(fst, vst, mdl) {
@@ -205,187 +221,49 @@ function start(fst, vst, mdl) {
     return;
   }
 
-  // pull vertecies from mdl object
-  // TODO const boxVerticies2 = mdl.meshes[0].verticies;
+  // get gpu data
+  const attLocPositions = gl.getAttribLocation(program, 'vertPosition');
+  const attLocTextCoords = gl.getAttribLocation(program, 'vertTexCoord');
 
-  // pull indices from mdl object
-  // TODO const boxIndices2 = mdl.meshes[0].faces.flat();
-
-  // creat buffers
-  /* OLD
-  const boxVerticies = [ // expects x, y, z, u, v
-    -1.0, 1.0, -1.0,   0, 0,
-		-1.0, 1.0, 1.0,    0, 1,
-		1.0, 1.0, 1.0,     1, 1,
-		1.0, 1.0, -1.0,    1, 0,
-
-		// Left
-		-1.0, 1.0, 1.0,    0, 0,
-		-1.0, -1.0, 1.0,   1, 0,
-		-1.0, -1.0, -1.0,  1, 1,
-		-1.0, 1.0, -1.0,   0, 1,
-
-		// Right
-		1.0, 1.0, 1.0,    1, 1,
-		1.0, -1.0, 1.0,   0, 1,
-		1.0, -1.0, -1.0,  0, 0,
-		1.0, 1.0, -1.0,   1, 0,
-
-		// Front
-		1.0, 1.0, 1.0,    1, 1,
-		1.0, -1.0, 1.0,    1, 0,
-		-1.0, -1.0, 1.0,    0, 0,
-		-1.0, 1.0, 1.0,    0, 1,
-
-		// Back
-		1.0, 1.0, -1.0,    0, 0,
-		1.0, -1.0, -1.0,    0, 1,
-		-1.0, -1.0, -1.0,    1, 1,
-		-1.0, 1.0, -1.0,    1, 0,
-
-		// Bottom
-		-1.0, -1.0, -1.0,   1, 1,
-		-1.0, -1.0, 1.0,    1, 0,
-		1.0, -1.0, 1.0,     0, 0,
-		1.0, -1.0, -1.0,    0, 1,
-  ];
-  */
-  /* NOTE|OLD:
-  const boxVerticies = [ // expects x, y, r, g, b
-    -1.0, 1.0, -1.0,   0.5, 0.5, 0.5,
-		-1.0, 1.0, 1.0,    0.5, 0.5, 0.5,
-		1.0, 1.0, 1.0,     0.5, 0.5, 0.5,
-		1.0, 1.0, -1.0,    0.5, 0.5, 0.5,
-
-		// Left
-		-1.0, 1.0, 1.0,    0.75, 0.25, 0.5,
-		-1.0, -1.0, 1.0,   0.75, 0.25, 0.5,
-		-1.0, -1.0, -1.0,  0.75, 0.25, 0.5,
-		-1.0, 1.0, -1.0,   0.75, 0.25, 0.5,
-
-		// Right
-		1.0, 1.0, 1.0,    0.25, 0.25, 0.75,
-		1.0, -1.0, 1.0,   0.25, 0.25, 0.75,
-		1.0, -1.0, -1.0,  0.25, 0.25, 0.75,
-		1.0, 1.0, -1.0,   0.25, 0.25, 0.75,
-
-		// Front
-		1.0, 1.0, 1.0,    1.0, 0.0, 0.15,
-		1.0, -1.0, 1.0,    1.0, 0.0, 0.15,
-		-1.0, -1.0, 1.0,    1.0, 0.0, 0.15,
-		-1.0, 1.0, 1.0,    1.0, 0.0, 0.15,
-
-		// Back
-		1.0, 1.0, -1.0,    0.0, 1.0, 0.15,
-		1.0, -1.0, -1.0,    0.0, 1.0, 0.15,
-		-1.0, -1.0, -1.0,    0.0, 1.0, 0.15,
-		-1.0, 1.0, -1.0,    0.0, 1.0, 0.15,
-
-		// Bottom
-		-1.0, -1.0, -1.0,   0.5, 0.5, 1.0,
-		-1.0, -1.0, 1.0,    0.5, 0.5, 1.0,
-		1.0, -1.0, 1.0,     0.5, 0.5, 1.0,
-		1.0, -1.0, -1.0,    0.5, 0.5, 1.0,
-  ];
-  */
-
-  /* OLD
-  const boxIndices = [
-		// Top
-		0, 1, 2,
-		0, 2, 3,
-
-		// Left
-		5, 4, 6,
-		6, 4, 7,
-
-		// Right
-		8, 9, 10,
-		8, 10, 11,
-
-		// Front
-		13, 12, 14,
-		15, 14, 12,
-
-		// Back
-		16, 17, 18,
-		16, 18, 19,
-
-		// Bottom
-		21, 20, 22,
-		22, 20, 23,
-  ];
-  */
-
-  // create vertex buffer object on gpu
-  const boxVertexBufferObject = gl.createBuffer();
-
-  // bind the cpu buffer to gpu buffer (buffertype, bufferobject)
-  gl.bindBuffer(gl.ARRAY_BUFFER, boxVertexBufferObject);
-
-  // bind the array to the buffer (buffertype, buffer as typed buffer, render variance)
-  // OLD gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(boxVerticies), gl.STATIC_DRAW);
-  gl.bufferData(gl.ARRAY_BUFFER, mdl.vPositions, gl.STATIC_DRAW);
-
-  // create index buffer object on gpu
-  var boxIndexBufferObject = gl.createBuffer();
-
-  // bind the cpu buffer to the gpu buffer (buffertype, bufferobject)
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, boxIndexBufferObject);
-
-  // bind the array to the buffer (buffertype, buffer as typed buffer, render variance)
-  // OLD gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(boxIndices), gl.STATIC_DRAW);
+  const indicesBuffer = gl.createBuffer(); // create buffer
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indicesBuffer);
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mdl.mIndicies, gl.STATIC_DRAW);
 
-  // gets attribute from gl program (program => vert, namespace)
-  const positionAttribLocation = gl.getAttribLocation(program, 'vertPosition'); // position
-  // NOTE|OLD: const colorAttribLocation = gl.getAttribLocation(program, 'vertColor'); // color
-  const texCoordAttribLocation = gl.getAttribLocation(program, 'vertTexCoord');
+  const positionsBuffer = gl.createBuffer(); // create buffer
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionsBuffer); // bind the buffer
+  gl.bufferData(gl.ARRAY_BUFFER, mdl.vPositions, gl.STATIC_DRAW); // set buffer data
 
-  gl.vertexAttribPointer(
-    positionAttribLocation,
+  gl.vertexAttribPointer( // give buffer specs
+    attLocPositions,
     3,
     gl.FLOAT,
     gl.FALSE,
     3 * Float32Array.BYTES_PER_ELEMENT,
     0,
   );
-  /* OLD
-  // run position
-  gl.vertexAttribPointer(
-    positionAttribLocation, // attribute location
-    3, // number of elements per attribute
-    gl.FLOAT, // type of the elements
-    gl.FALSE, // data normalized
-    5 * Float32Array.BYTES_PER_ELEMENT, // size of an individual vertex
-    0, // offset from the beginning of a single vertex to this attribute
+
+  const TextCoordsBuffer = gl.createBuffer(); // create buffer
+  gl.bindBuffer(gl.ARRAY_BUFFER, TextCoordsBuffer); // bind the buffer
+  gl.bufferData(gl.ARRAY_BUFFER, mdl.vTextCoords, gl.STATIC_DRAW); // set buffer data
+
+  gl.vertexAttribPointer( // give buffer specs
+    attLocTextCoords,
+    2,
+    gl.FLOAT,
+    gl.FALSE,
+    2 * Float32Array.BYTES_PER_ELEMENT,
+    0,
   );
 
-  // run color | texture
-  gl.vertexAttribPointer(
-    texCoordAttribLocation,
-    // NOTE|OLD: colorAttribLocation, // attribute location
-    2, // number of elements per attribute
-    gl.FLOAT, // type of the elements
-    gl.FALSE, // data normalized
-    5 * Float32Array.BYTES_PER_ELEMENT, // size of an individual vertex
-    3 * Float32Array.BYTES_PER_ELEMENT, // offset from the beginning of a single vertex to this attribute
-  );
-  */
+  // enable buffers
+  gl.enableVertexAttribArray(attLocPositions);
+  gl.enableVertexAttribArray(attLocTextCoords);
 
-  // enable
-  gl.enableVertexAttribArray(positionAttribLocation);
-  // gl.enableVertexAttribArray(texCoordAttribLocation);
+  const texture = gl.createTexture(); // create texture
+  gl.bindTexture(gl.TEXTURE_2D, texture); // bind texture type
 
-  // create texture
-  const boxTexture = gl.createTexture();
-
-  // bind texture(type, texture);
-  gl.bindTexture(gl.TEXTURE_2D, boxTexture);
-
-  // allow alpha
-  gl.enable(gl.BLEND);
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.enable(gl.BLEND); // enable blending
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); // basic blend function
 
   // filter image(const type, Coord, format)
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -402,7 +280,7 @@ function start(fst, vst, mdl) {
     gl.RGBA,
     gl.RGBA,
     gl.UNSIGNED_BYTE,
-    document.getElementById('crate-texture'),
+    mdl.images[0],
   );
 
   // unbind after use
@@ -426,7 +304,7 @@ function start(fst, vst, mdl) {
 
   // set to identity
   glMatrix.mat4.identity(worldMatrix); // unchanged, sets to identity
-  glMatrix.mat4.lookAt(viewMatrix, [0, 0, -0.5], [0, 0, 0], [0, 1, 0]); // view matrix (out: mat4, eye: vec3, center: vec3, up: vec3)
+  glMatrix.mat4.lookAt(viewMatrix, [0, 0, -50], [0, 0, 0], [0, 1, 0]); // view matrix (out: mat4, eye: vec3, center: vec3, up: vec3)
   glMatrix.mat4.perspective(projMatrix, glMatrix.glMatrix.toRadian(45), canvas.width / canvas.height, 0.1, 1000); // sets to perspective (out: mat4, fov: number, aspect: number, near: number, far: number)
 
   // send to shader gl[`uniform${type}${size}v`](gpu data, transpose?, cpu data)
@@ -470,7 +348,7 @@ function start(fst, vst, mdl) {
     gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 
     // bind texture values
-    gl.bindTexture(gl.TEXTURE_2D, boxTexture);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.activeTexture(gl.TEXTURE0);
 
     // NOTE|OLD: draw the bound buffer (type you are drawing, skip, count)
