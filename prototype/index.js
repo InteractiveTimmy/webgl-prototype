@@ -27,11 +27,7 @@ function init() {
       })
       .then((r) => {
         vst = r;
-        return loadResource('models/box.gltf', 'json');
-      })
-      .then((r) => {
-        mdl = r;
-        return loadResource('models/animatedCube.gltf', 'json');
+        return loadResource('models/Avocado.gltf', 'json');
       })
       .then((r) => {
         data.gltf = r;
@@ -59,6 +55,8 @@ function init() {
 }
 
 function dataCheck(data) {
+  console.log(data);
+
   // destructure
   const { gltf, bin, textures } = data;
 
@@ -71,6 +69,8 @@ function dataCheck(data) {
 
   // get primatives
   const meshPrims = gltf.meshes[0].primitives[0];
+
+  console.log(meshPrims.indices);
 
   const vNormals = new Float32Array(
     bin,
@@ -100,7 +100,7 @@ function dataCheck(data) {
       / b[gltf.accessors[meshPrims.attributes.TEXCOORD_0].componentType]
   );
 
-  const mIndicies = new Float32Array(
+  const mIndicies = new Uint16Array(
     bin,
     gltf.bufferViews[gltf.accessors[meshPrims.indices].bufferView].byteOffset,
     gltf.bufferViews[gltf.accessors[meshPrims.indices].bufferView].byteLength
@@ -426,7 +426,7 @@ function start(fst, vst, mdl) {
 
   // set to identity
   glMatrix.mat4.identity(worldMatrix); // unchanged, sets to identity
-  glMatrix.mat4.lookAt(viewMatrix, [0, 0, -5], [0, 0, 0], [0, 1, 0]); // view matrix (out: mat4, eye: vec3, center: vec3, up: vec3)
+  glMatrix.mat4.lookAt(viewMatrix, [0, 0, -0.5], [0, 0, 0], [0, 1, 0]); // view matrix (out: mat4, eye: vec3, center: vec3, up: vec3)
   glMatrix.mat4.perspective(projMatrix, glMatrix.glMatrix.toRadian(45), canvas.width / canvas.height, 0.1, 1000); // sets to perspective (out: mat4, fov: number, aspect: number, near: number, far: number)
 
   // send to shader gl[`uniform${type}${size}v`](gpu data, transpose?, cpu data)
