@@ -70,13 +70,14 @@ function dataCheck(data) {
   const vPositions = new Float32Array(bin, 132, 432 / 4); // divide by 4, since float 32 is 4 bytes
   const vTangents = new Float32Array(bin, 996, 576 / 4);  // divide by1 4, since float 32 is 4 bytes
   const vTextCoords = new Float32Array(bin, 1572, 288 / 4);  // divide by1 4, since float 32 is 4 bytes
-  console.log({ vNormals, vPositions, vTangents, vTextCoords });
+  const mIndicies = new Uint16Array(bin, 60, 72 / 2);
 
-  return { vNormals, vPositions, vTangents, vTextCoords };
+  return { vNormals, vPositions, vTangents, vTextCoords, mIndicies };
 }
 
 function start(fst, vst, mdl) {
   console.log('starting');
+  console.log(mdl);
 
   const canvas = document.getElementById('app');
   const gl = canvas.getContext('webgl');
@@ -162,6 +163,7 @@ function start(fst, vst, mdl) {
   // TODO const boxIndices2 = mdl.meshes[0].faces.flat();
 
   // creat buffers
+  /* OLD
   const boxVerticies = [ // expects x, y, z, u, v
     -1.0, 1.0, -1.0,   0, 0,
 		-1.0, 1.0, 1.0,    0, 1,
@@ -198,7 +200,7 @@ function start(fst, vst, mdl) {
 		1.0, -1.0, 1.0,     0, 0,
 		1.0, -1.0, -1.0,    0, 1,
   ];
-
+  */
   /* NOTE|OLD:
   const boxVerticies = [ // expects x, y, r, g, b
     -1.0, 1.0, -1.0,   0.5, 0.5, 0.5,
@@ -238,6 +240,7 @@ function start(fst, vst, mdl) {
   ];
   */
 
+  /* OLD
   const boxIndices = [
 		// Top
 		0, 1, 2,
@@ -262,7 +265,8 @@ function start(fst, vst, mdl) {
 		// Bottom
 		21, 20, 22,
 		22, 20, 23,
-	];
+  ];
+  */
 
   // create vertex buffer object on gpu
   const boxVertexBufferObject = gl.createBuffer();
@@ -271,7 +275,8 @@ function start(fst, vst, mdl) {
   gl.bindBuffer(gl.ARRAY_BUFFER, boxVertexBufferObject);
 
   // bind the array to the buffer (buffertype, buffer as typed buffer, render variance)
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(boxVerticies), gl.STATIC_DRAW);
+  // OLD gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(boxVerticies), gl.STATIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER, mdl.vPositions, gl.STATIC_DRAW);
 
   // create index buffer object on gpu
   var boxIndexBufferObject = gl.createBuffer();
@@ -280,13 +285,23 @@ function start(fst, vst, mdl) {
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, boxIndexBufferObject);
 
   // bind the array to the buffer (buffertype, buffer as typed buffer, render variance)
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(boxIndices), gl.STATIC_DRAW);
+  // OLD gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(boxIndices), gl.STATIC_DRAW);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mdl.mIndicies, gl.STATIC_DRAW);
 
   // gets attribute from gl program (program => vert, namespace)
   const positionAttribLocation = gl.getAttribLocation(program, 'vertPosition'); // position
   // NOTE|OLD: const colorAttribLocation = gl.getAttribLocation(program, 'vertColor'); // color
   const texCoordAttribLocation = gl.getAttribLocation(program, 'vertTexCoord');
 
+  gl.vertexAttribPointer(
+    positionAttribLocation,
+    3,
+    gl.FLOAT,
+    gl.FALSE,
+    3 * Float32Array.BYTES_PER_ELEMENT,
+    0,
+  );
+  /* OLD
   // run position
   gl.vertexAttribPointer(
     positionAttribLocation, // attribute location
@@ -307,10 +322,11 @@ function start(fst, vst, mdl) {
     5 * Float32Array.BYTES_PER_ELEMENT, // size of an individual vertex
     3 * Float32Array.BYTES_PER_ELEMENT, // offset from the beginning of a single vertex to this attribute
   );
+  */
 
   // enable
   gl.enableVertexAttribArray(positionAttribLocation);
-  gl.enableVertexAttribArray(texCoordAttribLocation);
+  // gl.enableVertexAttribArray(texCoordAttribLocation);
 
   // create texture
   const boxTexture = gl.createTexture();
@@ -411,7 +427,8 @@ function start(fst, vst, mdl) {
     // NOTE|OLD: draw the bound buffer (type you are drawing, skip, count)
     // NOTE|OLD: gl.drawArrays(gl.TRIANGLES, 0, 3);
     // draw the bound buffer and incidies (type you are drawing, count, type of variable, skip)
-    gl.drawElements(gl.TRIANGLES, boxIndices.length, gl.UNSIGNED_SHORT, 0);
+    // OLD: pre-import model : gl.drawElements(gl.TRIANGLES, boxIndices.length, gl.UNSIGNED_SHORT, 0);
+    gl.drawElements(gl.TRIANGLES, mdl.mIndicies.length, gl.UNSIGNED_SHORT, 0);
 
     requestAnimationFrame(loop);
   }
