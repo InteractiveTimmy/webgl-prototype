@@ -62,15 +62,64 @@ function dataCheck(data) {
   // destructure
   const { gltf, bin, textures } = data;
 
+  const b = {
+    "5126": 4,
+    "5123": 2,
+  };
+
+  // start grabbing mesh data
+
+  // get primatives
+  const meshPrims = gltf.meshes[0].primitives[0];
+
+  const vNormals = new Float32Array(
+    bin,
+    gltf.bufferViews[gltf.accessors[meshPrims.attributes.NORMAL].bufferView].byteOffset,
+    gltf.bufferViews[gltf.accessors[meshPrims.attributes.NORMAL].bufferView].byteLength
+      / b[gltf.accessors[meshPrims.attributes.NORMAL].componentType]
+  );
+
+  const vPositions = new Float32Array(
+    bin,
+    gltf.bufferViews[gltf.accessors[meshPrims.attributes.POSITION].bufferView].byteOffset,
+    gltf.bufferViews[gltf.accessors[meshPrims.attributes.POSITION].bufferView].byteLength
+      / b[gltf.accessors[meshPrims.attributes.POSITION].componentType]
+  );
+
+  const vTangents = new Float32Array(
+    bin,
+    gltf.bufferViews[gltf.accessors[meshPrims.attributes.TANGENT].bufferView].byteOffset,
+    gltf.bufferViews[gltf.accessors[meshPrims.attributes.TANGENT].bufferView].byteLength
+      / b[gltf.accessors[meshPrims.attributes.TANGENT].componentType]
+  );
+
+  const vTextCoords = new Float32Array(
+    bin,
+    gltf.bufferViews[gltf.accessors[meshPrims.attributes.TEXCOORD_0].bufferView].byteOffset,
+    gltf.bufferViews[gltf.accessors[meshPrims.attributes.TEXCOORD_0].bufferView].byteLength
+      / b[gltf.accessors[meshPrims.attributes.TEXCOORD_0].componentType]
+  );
+
+  const mIndicies = new Float32Array(
+    bin,
+    gltf.bufferViews[gltf.accessors[meshPrims.indices].bufferView].byteOffset,
+    gltf.bufferViews[gltf.accessors[meshPrims.indices].bufferView].byteLength
+      / b[gltf.accessors[meshPrims.indices].componentType]
+  );
+
+  console.log('vnorms', vNormals);
+
   // log for analysis
   console.log(data);
 
   // get buffer to usable data
+  /* OLD
   const vNormals = new Float32Array(bin, 564, 432 / 4); // divide by 4, since float 32 is 4 bytes
   const vPositions = new Float32Array(bin, 132, 432 / 4); // divide by 4, since float 32 is 4 bytes
   const vTangents = new Float32Array(bin, 996, 576 / 4);  // divide by1 4, since float 32 is 4 bytes
   const vTextCoords = new Float32Array(bin, 1572, 288 / 4);  // divide by1 4, since float 32 is 4 bytes
   const mIndicies = new Uint16Array(bin, 60, 72 / 2);
+  */
 
   return { vNormals, vPositions, vTangents, vTextCoords, mIndicies };
 }
