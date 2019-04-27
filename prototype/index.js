@@ -1,7 +1,7 @@
-function loadResource(url) {
+function loadResource(url, type) {
   return new Promise((resolve, reject) => {
     fetch(url)
-      .then(r => r.text())
+      .then(r => r[type]())
       .then((r) => {
         resolve(r);
       })
@@ -18,20 +18,64 @@ function init() {
     let fst;
     let vst;
 
-    loadResource('shaders/fs.glsl')
+    const data = {};
+
+    loadResource('shaders/fs.glsl', 'text')
       .then((r) => {
         fst = r;
-        return loadResource('shaders/vs.glsl');
+        return loadResource('shaders/vs.glsl', 'text');
       })
       .then((r) => {
         vst = r;
+        return loadResource('models/box.gltf', 'json');
+      })
+      .then((r) => {
+        mdl = r;
+        return loadResource('models/animatedCube.gltf', 'json');
+      })
+      .then((r) => {
+        data.gltf = r;
 
-        this.start(fst, vst);
+        // use gltf data to find bin file
+        console.log(r.buffers);
+        return loadResource(`models/${r.buffers[0].uri}`, 'arrayBuffer');
+      })
+      .then((r) => {
+        data.bin = r;
+
+        // use gltf data to get all images for model
+        return Promise.all(
+          data.gltf.images.map(image => loadResource(`models/${image.uri}`, 'blob')),
+        );
+      })
+      .then((r) => {
+        data.textures = r;
+        const d = dataCheck(data);
+        this.start(fst, vst, d);
+
+        resolve();
       })
   });
 }
 
-function start(fst, vst) {
+function dataCheck(data) {
+  // destructure
+  const { gltf, bin, textures } = data;
+
+  // log for analysis
+  console.log(data);
+
+  // get buffer to usable data
+  const vNormals = new Float32Array(bin, 564, 432 / 4); // divide by 4, since float 32 is 4 bytes
+  const vPositions = new Float32Array(bin, 132, 432 / 4); // divide by 4, since float 32 is 4 bytes
+  const vTangents = new Float32Array(bin, 996, 576 / 4);  // divide by1 4, since float 32 is 4 bytes
+  const vTextCoords = new Float32Array(bin, 1572, 288 / 4);  // divide by1 4, since float 32 is 4 bytes
+  console.log({ vNormals, vPositions, vTangents, vTextCoords });
+
+  return { vNormals, vPositions, vTangents, vTextCoords };
+}
+
+function start(fst, vst, mdl) {
   console.log('starting');
 
   const canvas = document.getElementById('app');
@@ -111,6 +155,12 @@ function start(fst, vst) {
     return;
   }
 
+  // pull vertecies from mdl object
+  // TODO const boxVerticies2 = mdl.meshes[0].verticies;
+
+  // pull indices from mdl object
+  // TODO const boxIndices2 = mdl.meshes[0].faces.flat();
+
   // creat buffers
   const boxVerticies = [ // expects x, y, z, u, v
     -1.0, 1.0, -1.0,   0, 0,
@@ -148,6 +198,7 @@ function start(fst, vst) {
 		1.0, -1.0, 1.0,     0, 0,
 		1.0, -1.0, -1.0,    0, 1,
   ];
+
   /* NOTE|OLD:
   const boxVerticies = [ // expects x, y, r, g, b
     -1.0, 1.0, -1.0,   0.5, 0.5, 0.5,
@@ -291,6 +342,9 @@ function start(fst, vst) {
 
   // unbind after use
   gl.bindTexture(gl.TEXTURE_2D, null);
+
+  // reverses texture read from bottle left to top left
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
   // get uniforms [ constants ]
   const matWorldUniformLocation = gl.getUniformLocation(program, 'mWorld');
